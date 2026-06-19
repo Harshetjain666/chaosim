@@ -133,10 +133,25 @@ recent deploy. Restart with: restart payment-service
 `;
 
 const isFixed = (content: string): boolean => {
+  // Keep the error handling intact, and make charge() actually return on the
+  // success path. Accept the common ways an engineer would write that return.
   const keepsNoAccount = /return\s*\{\s*ok:\s*false,\s*reason:\s*'no_account'/.test(content);
-  const returnsResult = /return\s+result\s*;?/.test(content);
-  return keepsNoAccount && returnsResult;
+  if (!keepsNoAccount) return false;
+  // charge() must return on the success path. Accept the common phrasings,
+  // but not callProvider's own "return { ok: true }" which is always present.
+  return /return\s+result\b/.test(content) || /return\s+await\s+callProvider\s*\(/.test(content);
 };
+
+const PAYMENT_DIFF = `commit a91f3c2  refactor: split provider call out of payment.charge()
+Author: priya    12 minutes ago
+
+diff --git a/src/payment-service/payment.js b/src/payment-service/payment.js
+@@ async function charge({ customerId, amountCents, currency }) {
+   const result = await callProvider(account, amountCents, currency);
+   await db.saveTransaction(customerId, result);
+-  return result;
++  // the success path ends here
+ }`;
 
 const BUG_FILE = 'src/payment-service/payment.js';
 
@@ -198,8 +213,8 @@ export const paymentOutage: Scenario = {
 
   objectives: [
     { id: 'diagnose', label: 'Read the logs and find the failing endpoint', done: (s) => s.tFirstDiagnose !== null },
-    { id: 'root', label: 'Open the code at the root cause', done: (s) => s.tFirstCodeOpen !== null },
-    { id: 'patch', label: 'Patch the bug in payment.js', done: (s) => isFixed(s.fileContents[BUG_FILE] ?? '') },
+    { id: 'root', label: 'Trace it to the code that broke', done: (s) => s.tFirstCodeOpen !== null },
+    { id: 'patch', label: 'Find and fix the root cause', done: (s) => isFixed(s.fileContents[BUG_FILE] ?? '') },
     { id: 'verify', label: 'Verify the fix with npm test', done: (s) => s.testsPassed },
     { id: 'restore', label: 'Restart the service and clear the incident', done: (s) => s.resolved },
     { id: 'comms', label: 'Keep the CEO updated', done: (s) => s.ceoReplyTimes.length >= 1 },
@@ -223,12 +238,16 @@ export const paymentOutage: Scenario = {
     '7d4e0b1  chore: bump pg to 8.11                                   (3 hours ago)',
     'f02ca90  feat: idempotency keys for charges                       (yesterday)',
   ],
+  diff: PAYMENT_DIFF,
 
   liveAlerts: [
     "ERROR: TypeError: Cannot read property 'ok' of undefined",
     'ERROR: 500 Internal Server Error',
     "    at POST /charge (index.js:11)",
     'WARN: 47 failed payment requests in last 60s',
+    'ERROR: payment.charge() resolved to undefined',
+    'WARN: checkout p99 latency 8.1s, clients timing out',
+    'ERROR: 502 Bad Gateway from checkout-edge',
   ],
   recoveryAlert: 'INFO: payment-service healthy. error rate 0%. PAYMENT_SERVICE_DOWN cleared.',
 };

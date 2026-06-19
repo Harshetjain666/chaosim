@@ -9,6 +9,17 @@ import { clearGame, saveGame } from './persistence.ts';
 const FAIL_PER_SEC = 0.78; // ~47 failed requests per minute, matching the alert
 const CENTS_PER_FAIL = 4200; // a failed $42 order
 
+// The CEO reacts so the chat reads as a conversation, not a one-way feed.
+const CEO_ACKS = [
+  'Ok. Keep me posted, second by second.',
+  'Good. How long until we are back?',
+  'Understood. I need this fixed before they sit down.',
+  'Still with you. The room is getting restless.',
+  'Noted. Tell me the moment it is green.',
+  'Thank you. Stay on it.',
+];
+const CEO_RELIEF = 'Confirmed on my end, checkout is back. Strong work under pressure. Thank you.';
+
 type Action =
   | { type: 'start'; name: string }
   | { type: 'tick' }
@@ -151,7 +162,12 @@ function reducer(scenario: Scenario, state: IncidentState, action: Action): Inci
       let next: IncidentState = { ...state, fileContents, editCount: state.editCount + 1 };
       if (isCodeFile(scenario, action.path)) {
         if (next.tFirstCodeOpen === null) next.tFirstCodeOpen = next.elapsed;
-        if (action.path === scenario.bugFile) next.testsPassed = false;
+        // Changing the code invalidates a prior test pass and restart: you have
+        // to verify and restart again before it counts as resolved.
+        if (action.path === scenario.bugFile) {
+          next.testsPassed = false;
+          next.restarted = false;
+        }
       }
       next = { ...next, stageIndex: recomputeStage(next) };
       return next;
@@ -161,10 +177,18 @@ function reducer(scenario: Scenario, state: IncidentState, action: Action): Inci
       const text = action.text.trim();
       if (text === '') return state;
       const msg: ChatMessage = { id: `you-${state.elapsed}-${state.chat.length}`, from: 'you', text, atElapsed: state.elapsed };
+      const nextChat = [...state.chat, msg];
+      // She answers back so replying feels heard, but a busy CEO does not reply
+      // to every single line: the first few, then occasionally.
+      const n = state.ceoReplyTimes.length;
+      if (!state.resolved && (n < 3 || n % 3 === 0)) {
+        const ack = CEO_ACKS[n % CEO_ACKS.length] ?? CEO_ACKS[0]!;
+        nextChat.push({ id: `ceo-ack-${state.elapsed}-${state.chat.length}`, from: 'ceo', text: ack, atElapsed: state.elapsed });
+      }
       const underPressure = state.repliedUnderPressure || state.firedEventIds.length > 0;
       return {
         ...state,
-        chat: [...state.chat, msg],
+        chat: nextChat,
         ceoReplyTimes: [...state.ceoReplyTimes, state.elapsed],
         repliedUnderPressure: underPressure,
       };
@@ -195,6 +219,7 @@ function reducer(scenario: Scenario, state: IncidentState, action: Action): Inci
         next.resolved = true;
         next.tResolve = next.elapsed;
         next.logFeed = [...next.logFeed, recoveryLine(scenario, next.elapsed)].slice(-40);
+        next.chat = [...next.chat, { id: `ceo-relief-${next.elapsed}`, from: 'ceo', text: CEO_RELIEF, atElapsed: next.elapsed }];
         next.eventQueue = [];
         next.activeEvent = {
           id: 'resolved',

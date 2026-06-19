@@ -73,7 +73,7 @@ describe('POST /orders', () => {
 `;
 
 const errorLog = `[2024-01-15 14:31:06] ERROR: 422 order rejected: amount_out_of_range (amountCents=4200, max=0)
-    at POST /orders (validate.js:13)
+    at POST /orders (validate.js:15)
 [2024-01-15 14:31:06] ERROR: 422 order rejected: amount_out_of_range (amountCents=1999, max=0)
 [2024-01-15 14:31:19] WARN: 98% of orders rejected in last 60s
 [2024-01-15 14:31:30] CRIT: ORDERS_FAILING - revenue flatlined, alerting on-call
@@ -108,10 +108,24 @@ recent deploy to limits. Restart with: restart orders-service
 `;
 
 const isFixed = (content: string): boolean => {
+  // A real fix restores a sane upper bound, or drops the bogus check while
+  // keeping a working validator. Keyed on positive evidence, never on the mere
+  // absence of text, so a cleared or stubbed file is never mistaken for a fix.
   const m = content.match(/MAX_ORDER_CENTS\s*=\s*(\d+)/);
-  if (!m || m[1] === undefined) return false;
-  return Number(m[1]) >= 100000; // a sane upper bound, at least $1,000
+  const saneLimit = !!(m && m[1] !== undefined && Number(m[1]) >= 100000);
+  const upperBoundRemoved = !/amountCents\s*>\s*MAX_ORDER_CENTS/.test(content);
+  const stillValidates = /return\s*\{\s*ok\s*:\s*true/.test(content);
+  return saneLimit || (upperBoundRemoved && stillValidates);
 };
+
+const ORDERS_DIFF = `commit b72d1aa  refactor: centralize order limits
+Author: priya    9 minutes ago
+
+diff --git a/src/orders-service/validate.js b/src/orders-service/validate.js
+@@ const MIN_ORDER_CENTS = 50;
+-const MAX_ORDER_CENTS = 5000000;
++const MAX_ORDER_CENTS = 0;
+ const MIN_ORDER_CENTS = 50;`;
 
 const BUG_FILE = 'src/orders-service/validate.js';
 
@@ -173,8 +187,8 @@ export const ordersValidation: Scenario = {
 
   objectives: [
     { id: 'diagnose', label: 'Read the logs and find the rejection reason', done: (s) => s.tFirstDiagnose !== null },
-    { id: 'root', label: 'Open the validation code', done: (s) => s.tFirstCodeOpen !== null },
-    { id: 'patch', label: 'Fix the order limit in validate.js', done: (s) => isFixed(s.fileContents[BUG_FILE] ?? '') },
+    { id: 'root', label: 'Trace it to the code that broke', done: (s) => s.tFirstCodeOpen !== null },
+    { id: 'patch', label: 'Find and fix the root cause', done: (s) => isFixed(s.fileContents[BUG_FILE] ?? '') },
     { id: 'verify', label: 'Verify the fix with npm test', done: (s) => s.testsPassed },
     { id: 'restore', label: 'Restart the service and clear the incident', done: (s) => s.resolved },
     { id: 'comms', label: 'Keep the CEO updated', done: (s) => s.ceoReplyTimes.length >= 1 },
@@ -191,19 +205,23 @@ export const ordersValidation: Scenario = {
 
   testFile: 'src/tests/orders.test.js',
   testName: 'POST /orders > accepts a normal order',
-  failTrace: ['expected 200 "OK", got 422 "Unprocessable Entity"', 'reason: amount_out_of_range (max=0)', 'at POST /orders (src/orders-service/validate.js:13)'],
+  failTrace: ['expected 200 "OK", got 422 "Unprocessable Entity"', 'reason: amount_out_of_range (max=0)', 'at POST /orders (src/orders-service/validate.js:15)'],
   crashLine: 'every order still rejected: amount_out_of_range (max=0)',
   deploys: [
     'b72d1aa  refactor: centralize order limits             (9 min ago)',
     '4c1e882  feat: partial refunds                          (5 hours ago)',
     'e90ad13  chore: bump express to 5                       (yesterday)',
   ],
+  diff: ORDERS_DIFF,
 
   liveAlerts: [
     'ERROR: 422 order rejected: amount_out_of_range (amountCents=4200, max=0)',
     'ERROR: 422 order rejected: amount_out_of_range (amountCents=1999, max=0)',
-    '    at POST /orders (validate.js:13)',
+    '    at POST /orders (validate.js:15)',
     'WARN: 98% of orders rejected in last 60s',
+    'ERROR: 422 order rejected: amount_out_of_range (amountCents=899, max=0)',
+    'WARN: conversion rate dropped to 0% in last 60s',
+    'ERROR: cart abandonment spike, checkout returning 422',
   ],
   recoveryAlert: 'INFO: orders-service healthy. acceptance rate back to normal. ORDERS_FAILING cleared.',
 };

@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import type { Scenario } from '../scenario/types.ts';
 import { clock } from '../format.ts';
 
@@ -12,6 +13,14 @@ interface Props {
 export function TopBar({ scenario, elapsed, onExit, onOpenKb, onSubmit }: Props) {
   const remaining = scenario.deadlineSeconds - elapsed;
   const low = remaining <= 5 * 60;
+  const [confirming, setConfirming] = useState(false);
+
+  // Submitting ends the run, so it takes two clicks. Reset if they hesitate.
+  useEffect(() => {
+    if (!confirming) return;
+    const id = setTimeout(() => setConfirming(false), 4000);
+    return () => clearTimeout(id);
+  }, [confirming]);
 
   return (
     <header className="topbar">
@@ -32,8 +41,15 @@ export function TopBar({ scenario, elapsed, onExit, onOpenKb, onSubmit }: Props)
         <span className={`demo-clock ${low ? 'low' : ''}`}>{clock(remaining)}</span>
       </div>
 
-      <button className="submit-btn" onClick={onSubmit} type="button">
-        SUBMIT FOR EVALUATION
+      <button
+        className={`submit-btn ${confirming ? 'confirming' : ''}`}
+        onClick={() => {
+          if (confirming) onSubmit();
+          else setConfirming(true);
+        }}
+        type="button"
+      >
+        {confirming ? 'CONFIRM: END INCIDENT' : 'SUBMIT FOR EVALUATION'}
       </button>
     </header>
   );

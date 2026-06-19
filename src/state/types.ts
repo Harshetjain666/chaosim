@@ -17,17 +17,19 @@ export interface EvaluationCategory {
   label: string;
   weight: number;
   score: number;
+  /** Benchmark band for this dimension, e.g. "top 25%". */
+  band: string;
   notes: string[];
 }
 
 export interface Evaluation {
   score: number;
   grade: string;
+  /** Overall benchmark percentile on this incident, 1 to 99. */
+  percentile: number;
   resolved: boolean;
   timeLabel: string;
   categories: EvaluationCategory[];
-  strengths: string[];
-  flags: string[];
   verdict: string;
 }
 

@@ -61,6 +61,11 @@ test('returning the provider result is a valid fix', () => {
   assert.equal(sc.isFixed(fixed), true);
 });
 
+test('the fix detector accepts a reasonable alternate phrasing', () => {
+  const alt = original.replace('  // the success path ends here', '  return await callProvider(account, amountCents, currency);');
+  assert.equal(sc.isFixed(alt), true);
+});
+
 test('npm test fails on the broken code and passes once fixed', () => {
   const fail = runCommand('npm test', sc, baseState());
   assert.equal(fail.flags.testsPassed, false);
@@ -101,13 +106,14 @@ test('a resolved, methodical run outscores an unresolved one', () => {
 
   assert.ok(good.score > bad.score);
   assert.equal(good.resolved, true);
-  assert.ok(good.strengths.length > 0);
-  assert.ok(bad.flags.length > 0);
+  assert.ok(good.categories.some((c) => c.score >= 78), 'a strong run has a strong category');
+  assert.ok(bad.categories.some((c) => c.score < 50), 'a weak run has a weak category');
 });
 
-test('going silent on the CEO is flagged', () => {
+test('going silent on the CEO tanks the communication score', () => {
   const e = evaluate(baseState({ resolved: true, tResolve: 300, testsPassed: true, ceoReplyTimes: [] }), sc);
-  assert.ok(e.flags.some((f) => /Communication/.test(f)));
+  const comms = e.categories.find((c) => c.key === 'communication');
+  assert.ok(comms && comms.score < 50, `silence should score low, got ${comms?.score}`);
 });
 
 test('the report is five weighted categories that sum to one', () => {
@@ -133,4 +139,17 @@ test('the report is five weighted categories that sum to one', () => {
   const diagnosis = e.categories.find((c) => c.key === 'diagnosis')!;
   assert.ok(diagnosis.score >= 90, `methodical diagnosis should score high, got ${diagnosis.score}`);
   assert.ok(e.score >= 85, `a clean run should grade high, got ${e.score}`);
+  assert.ok(e.categories.every((c) => typeof c.band === 'string' && c.band.length > 0), 'every category has a band');
+});
+
+test('the report carries a sensible benchmark percentile', () => {
+  const strong = evaluate(
+    baseState({ resolved: true, tResolve: 120, testsPassed: true, testsBeforeFix: 1, restarted: true, tFirstDiagnose: 8, tFirstCodeOpen: 30, openedBugFile: true, ceoReplyTimes: [15, 70], repliedUnderPressure: true }),
+    sc,
+  );
+  const weak = evaluate(baseState({ resolved: false, elapsed: 1080 }), sc);
+  assert.ok(strong.percentile >= 1 && strong.percentile <= 99);
+  assert.ok(weak.percentile >= 1 && weak.percentile <= 99);
+  assert.ok(strong.percentile > weak.percentile, `strong run should out-percentile weak (${strong.percentile} vs ${weak.percentile})`);
+  assert.ok(strong.percentile >= 70, `a strong run should land high, got ${strong.percentile}`);
 });

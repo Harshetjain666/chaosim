@@ -19,7 +19,8 @@ Object.defineProperty(globalThis, 'localStorage', { value: shim, configurable: t
 const { saveGame, loadGame, clearGame } = await import('../src/state/persistence.ts');
 
 function rec(over: Record<string, unknown> = {}) {
-  return { v: 1, scenarioId: 'payment-outage', playerName: 'Tester', state: { submitted: false, elapsed: 5, ...over } } as never;
+  const state = { submitted: false, elapsed: 5, ceoReplyTimes: [], logFeed: [], terminal: [], fileContents: {}, ...over };
+  return { v: 1, scenarioId: 'payment-outage', playerName: 'Tester', state } as never;
 }
 
 test('a save round-trips through storage', () => {

@@ -30,6 +30,10 @@ export function EvaluationModal({ evaluation, playerName, onReplay, onMenu }: Pr
               {evaluation.resolved ? `Resolved in ${evaluation.timeLabel}` : 'Not resolved'}
             </div>
           </div>
+          <div className="eval-percentile">
+            <div className="eval-pct-num">{evaluation.percentile}th</div>
+            <div className="eval-pct-cap">percentile on this incident</div>
+          </div>
         </div>
 
         <p className="eval-verdict">{evaluation.verdict}</p>
@@ -39,7 +43,10 @@ export function EvaluationModal({ evaluation, playerName, onReplay, onMenu }: Pr
             <div key={c.key} className={`eval-cat tone-${tone(c.score)}`}>
               <div className="eval-cat-head">
                 <span className="eval-cat-label">{c.label}</span>
-                <span className="eval-cat-score">{c.score}</span>
+                <span className="eval-cat-right">
+                  <span className="eval-cat-band">{c.band}</span>
+                  <span className="eval-cat-score">{c.score}</span>
+                </span>
               </div>
               <div className="eval-cat-bar">
                 <div className="eval-cat-fill" style={{ width: `${c.score}%` }} />

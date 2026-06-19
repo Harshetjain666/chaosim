@@ -83,6 +83,8 @@ export interface Scenario {
   crashLine: string;
   /** `git log` output. */
   deploys: string[];
+  /** `git diff` / `git show` output: the bad change that caused the incident. */
+  diff: string;
 
   // live observability
   liveAlerts: string[];

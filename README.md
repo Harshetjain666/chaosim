@@ -2,13 +2,13 @@
 
 An immersive production incident simulation. You are a senior engineer dropped into a live outage: the payment service is down, the board demo is in 18 minutes, and the CEO is messaging you. You read the real codebase, run a terminal, find the bug, fix it, and ship, while everything you do is tracked and scored.
 
-It is built engine-first, so incidents are data, not wiring. Two ship today: INC-4821 (Payment Service Down, a missing return after a refactor) and INC-5093 (Orders Failing Validation, a zeroed-out limit). You pick one on the welcome screen, and an objectives panel tracks your progress through it.
+It is built engine-first, so incidents are data, not wiring. Three ship today, each a different shape of bug: INC-4821 (Payment Service Down, a missing return after a refactor), INC-5093 (Orders Failing Validation, a zeroed-out limit), and INC-6602 (Inventory Service Down, a two-hop data-contract break where the stack trace misdirects you). You pick one on the welcome screen, and an objectives panel tracks your progress through it.
 
 ## Run
 
 ```bash
 npm install
-npm run dev        # play at http://localhost:5174
+npm run dev        # play at http://localhost:5173
 npm test           # headless scenario tests (node --test)
 npm run build      # typecheck + production build
 ```
@@ -70,7 +70,7 @@ test/
   scenario.test.ts    the fix flow, the terminal, and the evaluation
 ```
 
-A scenario is data. To add a second incident (a memory leak, a bad deploy, a runaway query), you write another `Scenario` object: its files, its bug, its CEO script, its fix rule. The engine, the IDE shell, the terminal, and the evaluation are all scenario agnostic.
+A scenario is data. To add another incident (a memory leak, a bad deploy, a runaway query), you write another `Scenario` object: its files, its bug, its CEO script, its `git diff`, its fix rule. The engine, the IDE shell, the terminal, the metrics, and the evaluation are all scenario agnostic.
 
 ## Adding a scenario
 

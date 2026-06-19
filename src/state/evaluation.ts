@@ -17,6 +17,20 @@ function gradeFor(score: number): string {
 
 const clamp = (n: number) => Math.max(0, Math.min(100, Math.round(n)));
 
+/** Map a 0-100 score to a benchmark percentile against the incident baseline. */
+function percentileFor(score: number): number {
+  const raw = score <= 50 ? score * 0.5 : 25 + (score - 50) * 1.5;
+  return Math.max(1, Math.min(99, Math.round(raw)));
+}
+
+function bandFor(score: number): string {
+  if (score >= 90) return 'top 10%';
+  if (score >= 80) return 'top 25%';
+  if (score >= 65) return 'above average';
+  if (score >= 50) return 'below average';
+  return 'bottom 25%';
+}
+
 /**
  * Score the incident response across five behavioral dimensions.
  *
@@ -30,7 +44,7 @@ export function evaluate(state: IncidentState, scenario: Scenario): Evaluation {
   const timeUsed = state.tResolve ?? state.elapsed;
   const deadline = scenario.deadlineSeconds;
 
-  const categories: EvaluationCategory[] = [];
+  const categories: Omit<EvaluationCategory, 'band'>[] = [];
 
   // 1. Resolution: did the outage end, and how fast.
   {
@@ -147,9 +161,7 @@ export function evaluate(state: IncidentState, scenario: Scenario): Evaluation {
   }
 
   const overall = clamp(categories.reduce((sum, c) => sum + c.score * c.weight, 0));
-
-  const strengths = categories.filter((c) => c.score >= 78).map((c) => `${c.label}: ${c.notes[0]}`);
-  const flags = categories.filter((c) => c.score < 50).map((c) => `${c.label}: ${c.notes[0]}`);
+  const banded: EvaluationCategory[] = categories.map((c) => ({ ...c, band: bandFor(c.score) }));
 
   const verdict = resolved
     ? overall >= 80
@@ -160,11 +172,10 @@ export function evaluate(state: IncidentState, scenario: Scenario): Evaluation {
   return {
     score: overall,
     grade: gradeFor(overall),
+    percentile: percentileFor(overall),
     resolved,
     timeLabel: fmt(timeUsed),
-    categories,
-    strengths,
-    flags,
+    categories: banded,
     verdict,
   };
 }

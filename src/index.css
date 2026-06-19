@@ -283,6 +283,11 @@ button {
 .submit-btn:hover {
   background: #ff647a;
 }
+.submit-btn.confirming {
+  background: #7a1020;
+  box-shadow: 0 0 0 1px var(--red) inset;
+  animation: blink 1.1s ease-in-out infinite;
+}
 
 /* ============ metrics bar ============ */
 .metricsbar {
@@ -1075,6 +1080,36 @@ button {
   font-size: 22px;
   font-weight: 700;
 }
+.eval-percentile {
+  margin-left: auto;
+  text-align: right;
+}
+.eval-pct-num {
+  font-family: var(--mono);
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--accent-2);
+}
+.eval-pct-cap {
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--txt-faint);
+}
+.eval-cat-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.eval-cat-band {
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--txt-faint);
+  border: 1px solid var(--line-2);
+  border-radius: 4px;
+  padding: 2px 7px;
+}
 .eval-resolved.ok {
   color: var(--green);
 }
@@ -1089,39 +1124,6 @@ button {
   border-left: 2px solid var(--line-2);
   padding: 12px 14px;
   border-radius: 8px;
-}
-.eval-cols {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
-  margin: 18px 0 22px;
-}
-.eval-col h4 {
-  margin: 0 0 8px;
-  font-family: var(--sans);
-  font-size: 13px;
-}
-.eval-col h4.ok {
-  color: var(--green);
-}
-.eval-col h4.bad {
-  color: var(--red);
-}
-.eval-col ul {
-  margin: 0;
-  padding-left: 16px;
-}
-.eval-col li {
-  font-family: var(--sans);
-  font-size: 13px;
-  line-height: 1.5;
-  color: var(--txt-dim);
-  margin-bottom: 7px;
-}
-.eval-none {
-  color: var(--txt-faint);
-  font-family: var(--sans);
-  font-size: 13px;
 }
 .eval-actions {
   display: flex;

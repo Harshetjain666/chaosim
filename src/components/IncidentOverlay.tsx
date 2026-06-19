@@ -16,10 +16,11 @@ export function IncidentOverlay({ event, onDismiss }: Props) {
   const isResolved = event?.id === 'resolved';
   const isCall = event?.kind === 'boss_call';
 
-  // Escalations and system beats fade on their own. A boss call must be answered.
+  // Escalations fade on their own. A boss call and the resolution beat both
+  // wait for the player, so the interruption and the win each get their moment.
   useEffect(() => {
-    if (!event || isCall) return;
-    const id = setTimeout(onDismiss, isResolved ? 7000 : 6500);
+    if (!event || isCall || isResolved) return;
+    const id = setTimeout(onDismiss, 6500);
     return () => clearTimeout(id);
   }, [event, isCall, isResolved, onDismiss]);
 

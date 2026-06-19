@@ -34,8 +34,16 @@ export function loadGame(): SaveRecord | null {
     const raw = s.getItem(KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw) as SaveRecord;
-    if (parsed && parsed.v === 1 && parsed.state && !parsed.state.submitted) return parsed;
-    return null;
+    if (!parsed || parsed.v !== 1 || !parsed.state || parsed.state.submitted) return null;
+    // Reject saves from an older shape so a resume never crashes on read.
+    const st = parsed.state;
+    const valid =
+      typeof st.elapsed === 'number' &&
+      Array.isArray(st.ceoReplyTimes) &&
+      Array.isArray(st.logFeed) &&
+      Array.isArray(st.terminal) &&
+      typeof st.fileContents === 'object';
+    return valid ? parsed : null;
   } catch {
     return null;
   }

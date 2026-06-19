@@ -21,6 +21,7 @@ const HELP = [
   '  npm test             run the test suite',
   '  restart <service>    restart a service',
   '  git log              recent deploys',
+  '  git diff             what the last deploy changed',
   '  status               incident status',
   '  clear                clear the terminal',
   '  help                 show this',
@@ -64,6 +65,26 @@ export function runCommand(raw: string, scenario: Scenario, state: IncidentState
     return { out: scenario.deploys, flags: {} };
   }
 
+  if (cmd === 'git' && (arg === 'diff' || arg === 'show')) {
+    // Reading the bad change counts as diagnosis.
+    return { out: scenario.diff.split('\n'), flags: { diagnosed: true } };
+  }
+
+  if (cmd === 'git' && arg === 'status') {
+    return {
+      out: ['On branch main', "Your branch is up to date with 'origin/main'.", '', 'nothing to commit, working tree clean'],
+      flags: {},
+    };
+  }
+
+  if (cmd === 'git') {
+    return { out: [`git ${arg}: not wired up in this sim. try: git log, git diff, git status`], flags: {} };
+  }
+
+  if (cmd === 'npm' && (arg === 'install' || arg === 'ci' || arg === 'i')) {
+    return { out: ['up to date, audited 312 packages in 0.6s', '', 'found 0 vulnerabilities'], flags: {} };
+  }
+
   if ((cmd === 'npm' && (arg === 'test' || arg === 'run')) || cmd === 'test' || cmd === 'jest') {
     const content = state.fileContents[scenario.bugFile] ?? '';
     const passed = scenario.isFixed(content);
@@ -99,6 +120,10 @@ export function runCommand(raw: string, scenario: Scenario, state: IncidentState
       out: [`restarting ${target}...`, `${target} is back, but the same failures continue: ${scenario.crashLine}`, 'the code is still broken.'],
       flags: {},
     };
+  }
+
+  if (cmd === 'npm') {
+    return { out: [`npm ${arg}: not wired up in this sim. try: npm test, npm install, npm start`], flags: {} };
   }
 
   if (cmd === 'status') {

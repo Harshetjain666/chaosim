@@ -82,6 +82,16 @@ export function Editor({
             value={base}
             spellCheck={false}
             onChange={(e) => onEdit(active.path, e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key !== 'Tab') return;
+              e.preventDefault();
+              const ta = e.currentTarget;
+              const { selectionStart: start, selectionEnd: end } = ta;
+              onEdit(active.path, base.slice(0, start) + '  ' + base.slice(end));
+              requestAnimationFrame(() => {
+                ta.selectionStart = ta.selectionEnd = start + 2;
+              });
+            }}
           />
         ) : (
           <pre className={`code-view lang-${active.language}`}>{content}</pre>
