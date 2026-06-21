@@ -134,7 +134,8 @@ diff --git a/${bugFile} b/${bugFile}
     isFixed: (content) => {
       const keepsNotFound = /return\s*\{\s*ok:\s*false,\s*reason:\s*'not_found'/.test(content);
       if (!keepsNotFound) return false;
-      return /return\s+result\b/.test(content) || /return\s+await\s+callProvider\s*\(/.test(content);
+      // Anchored to a statement position so the token cannot be faked in a comment or string.
+      return /(^|\n)\s*return\s+result\b/.test(content) || /(^|\n)\s*return\s+await\s+callProvider\s*\(/.test(content);
     },
     testFile: `src/tests/${hm}.test.js`,
     testName: `${method} ${svc.path} > processes a valid ${svc.noun} and returns ok`,
@@ -257,10 +258,11 @@ diff --git a/${bugFile} b/${bugFile}
     brokenContent,
     referenceFixContent,
     isFixed: (content) => {
-      const m = content.match(new RegExp(`${limit}\\s*=\\s*(\\d+)`));
-      const saneLimit = !!(m && Number(m[1]) >= 100000);
+      // Keys on the constant's numeric value, which a comment or string cannot fake.
+      const m = content.match(new RegExp(`(^|\\n)\\s*const\\s+${limit}\\s*=\\s*(\\d+)`));
+      const saneLimit = !!(m && Number(m[2]) >= 100000);
       const upperBoundRemoved = !new RegExp(`amountCents\\s*>\\s*${limit}`).test(content);
-      const stillReturnsOk = /return\s*\{\s*ok:\s*true/.test(content);
+      const stillReturnsOk = /(^|\n)\s*return\s*\{\s*ok:\s*true/.test(content);
       return saneLimit || (upperBoundRemoved && stillReturnsOk);
     },
     testFile: `src/tests/${hm}.test.js`,
@@ -413,11 +415,12 @@ diff --git a/${bugFile} b/${bugFile}
     brokenContent,
     referenceFixContent,
     isFixed: (content) => {
+      const code = content.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '');
       const buildsKeyed =
-        new RegExp(`\\[\\s*\\w+\\.${key}\\s*\\]\\s*=`).test(content) ||
-        /\.reduce\s*\(/.test(content) ||
-        /Object\.fromEntries/.test(content);
-      const returnsBareRows = /return\s+rows\s*(;|\n|\})/.test(content);
+        new RegExp(`(^|\\n)\\s*\\w+\\[\\s*\\w+\\.${key}\\s*\\]\\s*=`).test(code) ||
+        /(^|\n)\s*return\s+\w+\.reduce\s*\(/.test(code) ||
+        /(^|\n)\s*return\s+Object\.fromEntries/.test(code);
+      const returnsBareRows = /(^|\n)\s*return\s+rows\s*;?\s*$/m.test(code);
       return buildsKeyed && !returnsBareRows;
     },
     testFile: `src/tests/${svc.handlerModule}.test.js`,
