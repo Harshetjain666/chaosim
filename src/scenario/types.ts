@@ -89,4 +89,9 @@ export interface Scenario {
   // live observability
   liveAlerts: string[];
   recoveryAlert: string;
+
+  /** True when produced by the Company Brain generator rather than hand-authored. */
+  generated?: boolean;
+  /** The company this incident was generated for, for the picker label. */
+  generatedFor?: string;
 }

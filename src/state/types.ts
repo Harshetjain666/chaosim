@@ -1,5 +1,26 @@
 import type { IncidentEvent } from '../scenario/types.ts';
 
+/** Every player intent the reducer understands. Recorded for deterministic replay. */
+export type Action =
+  | { type: 'start'; name: string }
+  | { type: 'tick' }
+  | { type: 'openFile'; path: string }
+  | { type: 'closeTab'; path: string }
+  | { type: 'setActive'; path: string }
+  | { type: 'editFile'; path: string; content: string }
+  | { type: 'ceoReply'; text: string }
+  | { type: 'runCommand'; command: string }
+  | { type: 'openKb' }
+  | { type: 'dismissEvent' }
+  | { type: 'submit' }
+  | { type: 'reset' };
+
+/** One recorded player action and the simulation second it happened at. */
+export interface RecordedAction {
+  atElapsed: number;
+  action: Action;
+}
+
 export interface TerminalLine {
   kind: 'in' | 'out' | 'err' | 'sys';
   text: string;
@@ -63,6 +84,9 @@ export interface IncidentState {
   activeEvent: IncidentEvent | null;
   eventQueue: IncidentEvent[];
   firedEventIds: string[];
+
+  /** Ordered log of player actions, enabling deterministic replay. */
+  actionLog: RecordedAction[];
 
   submitted: boolean;
   evaluation: Evaluation | null;
