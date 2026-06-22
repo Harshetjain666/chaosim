@@ -5,6 +5,7 @@ interface Props {
   playerName: string;
   onReplay: () => void;
   onMenu: () => void;
+  onWatchReplay?: (() => void) | undefined;
 }
 
 function tone(score: number): string {
@@ -13,7 +14,7 @@ function tone(score: number): string {
   return 'bad';
 }
 
-export function EvaluationModal({ evaluation, playerName, onReplay, onMenu }: Props) {
+export function EvaluationModal({ evaluation, playerName, onReplay, onMenu, onWatchReplay }: Props) {
   return (
     <div className="modal-overlay">
       <div className="eval-modal">
@@ -64,6 +65,11 @@ export function EvaluationModal({ evaluation, playerName, onReplay, onMenu }: Pr
           <button className="btn-ghost-line" onClick={onMenu} type="button">
             ← Pick another incident
           </button>
+          {onWatchReplay ? (
+            <button className="btn-ghost-line" onClick={onWatchReplay} type="button">
+              ▶ Watch your replay
+            </button>
+          ) : null}
           <button className="enter-btn" onClick={onReplay} type="button">
             RUN THIS INCIDENT AGAIN
           </button>

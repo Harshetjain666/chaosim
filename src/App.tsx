@@ -34,6 +34,11 @@ export function App() {
           setRunsCount(listRuns().length);
           setSession(null);
         }}
+        onWatchReplay={(run) => {
+          setRunsCount(listRuns().length);
+          setSession(null);
+          setReplayRun(run);
+        }}
       />
     );
   }

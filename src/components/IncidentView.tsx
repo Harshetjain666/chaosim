@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import type { Scenario } from '../scenario/types.ts';
 import type { IncidentState } from '../state/types.ts';
+import type { RunRecord } from '../state/runs.ts';
 import { useIncident } from '../state/useIncident.ts';
 import { TopBar } from './TopBar.tsx';
 import { MetricsBar } from './MetricsBar.tsx';
@@ -12,6 +13,7 @@ import { Terminal } from './Terminal.tsx';
 import { Timeline } from './Timeline.tsx';
 import { KbModal } from './KbModal.tsx';
 import { EvaluationModal } from './EvaluationModal.tsx';
+import { EntryPrimer } from './EntryPrimer.tsx';
 import { IncidentOverlay } from './IncidentOverlay.tsx';
 
 interface Props {
@@ -19,19 +21,17 @@ interface Props {
   playerName: string;
   resumeState?: IncidentState;
   onMenu: () => void;
+  onWatchReplay: (run: RunRecord) => void;
 }
 
-export function IncidentView({ scenario, playerName, resumeState, onMenu }: Props) {
-  const { state, actions } = useIncident(scenario, resumeState);
+export function IncidentView({ scenario, playerName, resumeState, onMenu, onWatchReplay }: Props) {
+  const { state, actions, lastRun } = useIncident(scenario, resumeState);
   const [kbOpen, setKbOpen] = useState(false);
-  const startedRef = useRef(false);
 
-  useEffect(() => {
-    if (!startedRef.current && !state.started) {
-      startedRef.current = true;
-      actions.start(playerName);
-    }
-  }, [actions, playerName, state.started]);
+  // A fresh incident shows the brief first; the clock starts only when the
+  // candidate presses enter. A resumed incident is already running.
+  const begin = () => actions.start(playerName);
+  const showPrimer = !state.started && !resumeState;
 
   const replay = () => {
     actions.reset();
@@ -81,8 +81,15 @@ export function IncidentView({ scenario, playerName, resumeState, onMenu }: Prop
       <IncidentOverlay event={state.activeEvent} onDismiss={actions.dismissEvent} />
 
       {kbOpen ? <KbModal scenario={scenario} onClose={() => setKbOpen(false)} /> : null}
+      {showPrimer ? <EntryPrimer scenario={scenario} onBegin={begin} /> : null}
       {state.submitted && state.evaluation ? (
-        <EvaluationModal evaluation={state.evaluation} playerName={state.playerName} onReplay={replay} onMenu={onMenu} />
+        <EvaluationModal
+          evaluation={state.evaluation}
+          playerName={state.playerName}
+          onReplay={replay}
+          onMenu={onMenu}
+          onWatchReplay={lastRun ? () => onWatchReplay(lastRun) : undefined}
+        />
       ) : null}
     </div>
   );

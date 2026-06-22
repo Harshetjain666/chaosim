@@ -1,9 +1,9 @@
-import { useEffect, useMemo, useReducer, useRef } from 'react';
+import { useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import type { Scenario } from '../scenario/types.ts';
 import type { Action, IncidentState } from './types.ts';
 import { initialState, reducer } from './engine.ts';
 import { clearGame, saveGame } from './persistence.ts';
-import { buildRunRecord, saveRun } from './runs.ts';
+import { buildRunRecord, saveRun, type RunRecord } from './runs.ts';
 
 // Re-exported so existing imports keep working; the implementations live in engine.ts.
 export { applyAction, initialState, reducer } from './engine.ts';
@@ -30,12 +30,16 @@ export function useIncident(scenario: Scenario, resumeState?: IncidentState) {
     }
   }, [state, scenario.id]);
 
-  // Persist the completed run (result plus the replayable action log), once.
+  // Persist the completed run (result plus the replayable action log), once,
+  // and keep it so the report can hand it straight to the replay view.
   const savedRunRef = useRef(false);
+  const [lastRun, setLastRun] = useState<RunRecord | null>(null);
   useEffect(() => {
     if (state.submitted && state.evaluation && !savedRunRef.current) {
       savedRunRef.current = true;
-      saveRun(buildRunRecord(scenario, state, state.evaluation));
+      const record = buildRunRecord(scenario, state, state.evaluation);
+      saveRun(record);
+      setLastRun(record);
     }
   }, [state.submitted, state.evaluation, scenario, state]);
 
@@ -56,5 +60,5 @@ export function useIncident(scenario: Scenario, resumeState?: IncidentState) {
     [],
   );
 
-  return { state, actions };
+  return { state, actions, lastRun };
 }

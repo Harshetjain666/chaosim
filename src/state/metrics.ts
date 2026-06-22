@@ -36,12 +36,44 @@ export function deriveMetrics(state: IncidentState): DerivedMetrics {
   };
 }
 
-/** One streamed firehose line for the given second, drawn from the scenario. */
+// Ambient operational noise mixed into the firehose so it does not read as a
+// short loop. Placeholders are filled with deterministic values, so a replay
+// of the same second always reproduces the same line.
+const AMBIENT: string[] = [
+  'WARN: checkout conversion down {pct}% over the last 60s',
+  'WARN: support queue +{n} tickets tagged "payment failed"',
+  'WARN: {region} edge reporting elevated 5xx',
+  'ERROR: retry budget exhausted for {n} upstream calls',
+  'WARN: circuit breaker half-open, {n} probes failing',
+  'INFO: on-call paged, incident bridge open',
+  'WARN: p99 latency {lat}s, clients timing out',
+];
+
+const REGIONS = ['us-east-1', 'eu-west-1', 'us-west-2', 'ap-south-1'];
+
+function fillAmbient(template: string, elapsed: number): string {
+  return template
+    .replace('{pct}', String(8 + jitter(elapsed, 34)))
+    .replace('{n}', String(11 + jitter(elapsed * 7 + 3, 60)))
+    .replace('{region}', REGIONS[jitter(elapsed, REGIONS.length)] ?? REGIONS[0]!)
+    .replace('{lat}', (4 + jitter(elapsed * 3 + 1, 55) / 10).toFixed(1));
+}
+
+/**
+ * One streamed firehose line for the given second. Deterministically interleaves
+ * the scenario's own alerts with ambient operational noise (drawn by a hash of
+ * the second, not a strict cycle) so the feed feels live rather than looped.
+ * Pure in (scenario, elapsed): a replay reproduces it exactly.
+ */
 export function nextLogLine(scenario: Scenario, elapsed: number): string {
   const ts = `[2024-01-15 ${clockHMS(elapsed)}]`;
   const alerts = scenario.liveAlerts;
-  const line = alerts[elapsed % alerts.length] ?? alerts[0] ?? 'ERROR';
-  return `${ts} ${line}`;
+  const pool = alerts.length + AMBIENT.length;
+  const pick = jitter(elapsed, pool);
+  if (pick < alerts.length) {
+    return `${ts} ${alerts[pick] ?? alerts[0] ?? 'ERROR'}`;
+  }
+  return `${ts} ${fillAmbient(AMBIENT[pick - alerts.length] ?? AMBIENT[0]!, elapsed)}`;
 }
 
 export function recoveryLine(scenario: Scenario, elapsed: number): string {
