@@ -4,6 +4,7 @@ import type { RunRecord } from '../state/runs.ts';
 import { reconstructAt } from '../state/replay.ts';
 import { clock } from '../format.ts';
 import { MetricsBar } from './MetricsBar.tsx';
+import { SystemMap } from './SystemMap.tsx';
 import { Explorer } from './Explorer.tsx';
 import { MissionPanel } from './MissionPanel.tsx';
 import { Editor } from './Editor.tsx';
@@ -86,6 +87,10 @@ export function ReplayView({ run, onBack }: Props) {
       </header>
 
       <MetricsBar state={state} serviceName={scenario.serviceName} />
+
+      <div className="sysmap-strip open">
+        <SystemMap scenario={scenario} state={state} />
+      </div>
 
       <div className="replay-scrub">
         <input

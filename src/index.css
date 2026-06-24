@@ -1405,3 +1405,139 @@ button {
     grid-template-columns: 180px 1fr 320px;
   }
 }
+
+/* ============ live system map ============ */
+.sysmap-strip {
+  background: var(--bg-2);
+  border-bottom: 1px solid var(--line);
+}
+.sysmap-toggle {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: 0;
+  color: var(--txt-dim);
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  padding: 6px 14px;
+  cursor: pointer;
+}
+.sysmap-toggle:hover {
+  color: var(--txt);
+}
+.sysmap {
+  padding: 2px 14px 12px;
+}
+.sysmap-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 6px;
+}
+.sysmap-title {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  color: var(--txt-faint, var(--txt-dim));
+}
+.sysmap-blast {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  color: var(--txt-dim);
+}
+.sysmap-blast.hot {
+  color: var(--red);
+}
+.sysmap-svg {
+  width: 100%;
+  height: auto;
+  max-height: 160px;
+  display: block;
+}
+
+/* edges */
+.sysmap-edge {
+  stroke: var(--line-2);
+  stroke-width: 2;
+  fill: none;
+}
+.sysmap-edge.degraded {
+  stroke: #e6b450;
+}
+.sysmap-edge.down {
+  stroke: var(--red);
+}
+.sysmap-edge.flow {
+  stroke-dasharray: 5 6;
+  animation: sysmap-dash 0.7s linear infinite;
+}
+@keyframes sysmap-dash {
+  to {
+    stroke-dashoffset: -22;
+  }
+}
+
+/* nodes */
+.sysmap-node .sysmap-box {
+  fill: #0e1422;
+  stroke: var(--line-2);
+  stroke-width: 1.5;
+}
+.sysmap-node.healthy .sysmap-box {
+  stroke: #2a6f56;
+}
+.sysmap-node.degraded .sysmap-box {
+  stroke: #e6b450;
+}
+.sysmap-node.down .sysmap-box {
+  stroke: var(--red);
+  fill: #1d1117;
+}
+.sysmap-node.clickable {
+  cursor: pointer;
+}
+.sysmap-node.clickable:hover .sysmap-box {
+  filter: brightness(1.25);
+}
+.sysmap-glyph {
+  font-size: 15px;
+}
+.sysmap-label {
+  font-family: var(--mono);
+  font-size: 11px;
+  fill: var(--txt);
+}
+.sysmap-state {
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  fill: var(--txt-dim);
+}
+.sysmap-node.healthy .sysmap-state {
+  fill: var(--green);
+}
+.sysmap-node.degraded .sysmap-state {
+  fill: #e6b450;
+}
+.sysmap-node.down .sysmap-state {
+  fill: var(--red);
+}
+.sysmap-ring {
+  fill: none;
+  stroke: var(--red);
+  stroke-width: 1.5;
+  opacity: 0.5;
+  animation: sysmap-pulse 1.4s ease-in-out infinite;
+}
+@keyframes sysmap-pulse {
+  0%,
+  100% {
+    opacity: 0.12;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}

@@ -54,6 +54,32 @@ export type Stage = 'alerted' | 'diagnosing' | 'fixing' | 'testing' | 'resolved'
 
 export const STAGES: Stage[] = ['alerted', 'diagnosing', 'fixing', 'testing', 'resolved'];
 
+/** A node in the live service map. Edges point from a caller to its dependency. */
+export type NodeKind = 'client' | 'edge' | 'service' | 'datastore' | 'external';
+
+export interface TopologyNode {
+  id: string;
+  label: string;
+  kind: NodeKind;
+}
+
+export interface TopologyEdge {
+  from: string;
+  to: string;
+}
+
+/**
+ * The service graph behind the incident. The failing service is `rootId`; the
+ * map derives, in real time, which upstream callers are taking collateral damage
+ * so the candidate can see the blast radius instead of inferring it from logs.
+ * Optional: when absent, a sensible default is derived from the service name.
+ */
+export interface Topology {
+  nodes: TopologyNode[];
+  edges: TopologyEdge[];
+  rootId: string;
+}
+
 export interface Scenario {
   id: string;
   code: string;
@@ -94,4 +120,7 @@ export interface Scenario {
   generated?: boolean;
   /** The company this incident was generated for, for the picker label. */
   generatedFor?: string;
+
+  /** The service graph for the live system map. Derived from serviceName if omitted. */
+  topology?: Topology;
 }

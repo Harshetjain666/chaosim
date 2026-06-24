@@ -14,6 +14,7 @@ import { Timeline } from './Timeline.tsx';
 import { KbModal } from './KbModal.tsx';
 import { EvaluationModal } from './EvaluationModal.tsx';
 import { EntryPrimer } from './EntryPrimer.tsx';
+import { SystemMap } from './SystemMap.tsx';
 import { IncidentOverlay } from './IncidentOverlay.tsx';
 
 interface Props {
@@ -27,11 +28,13 @@ interface Props {
 export function IncidentView({ scenario, playerName, resumeState, onMenu, onWatchReplay }: Props) {
   const { state, actions, lastRun } = useIncident(scenario, resumeState);
   const [kbOpen, setKbOpen] = useState(false);
+  const [mapOpen, setMapOpen] = useState(true);
 
   // A fresh incident shows the brief first; the clock starts only when the
   // candidate presses enter. A resumed incident is already running.
   const begin = () => actions.start(playerName);
   const showPrimer = !state.started && !resumeState;
+  const errorLogPath = scenario.files.find((f) => f.path.endsWith('error.log'))?.path;
 
   const replay = () => {
     actions.reset();
@@ -51,6 +54,19 @@ export function IncidentView({ scenario, playerName, resumeState, onMenu, onWatc
         onSubmit={actions.submit}
       />
       <MetricsBar state={state} serviceName={scenario.serviceName} />
+
+      <div className={`sysmap-strip ${mapOpen ? 'open' : 'closed'}`}>
+        <button className="sysmap-toggle" onClick={() => setMapOpen((v) => !v)} type="button">
+          {mapOpen ? '▾' : '▸'} SYSTEM MAP
+        </button>
+        {mapOpen ? (
+          <SystemMap
+            scenario={scenario}
+            state={state}
+            onFocusService={errorLogPath ? () => actions.openFile(errorLogPath) : undefined}
+          />
+        ) : null}
+      </div>
 
       <main className="workspace">
         <div className="left-col">
